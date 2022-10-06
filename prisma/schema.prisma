@@ -11,25 +11,27 @@ datasource db {
 }
 
 model users {
-  id       String
-  name     String
-  messages message[]
-
-  @@unique([id, name])
+  id       String         @id
+  messages messages[]
+  banned   banned_users[]
 }
 
 model channels {
-  id      String    @id @unique
-  name    String    @unique
-  message message[]
+  id      String     @id @unique
+  name    String     @unique
+  message messages[]
 }
 
-model message {
-  id        Int      @id @default(autoincrement())
-  user      users    @relation(fields: [userId, userName], references: [id, name])
-  userId    String
-  userName  String
-  channel   channels @relation(fields: [channelId], references: [id])
-  channelId String
-  content   String
+model banned_users {
+  user_id String @id
+  user    users  @relation(fields: [user_id], references: [id])
+}
+
+model messages {
+  id         Int      @id @default(autoincrement())
+  user       users    @relation(fields: [user_id], references: [id])
+  user_id    String
+  channel    channels @relation(fields: [channel_id], references: [id])
+  channel_id String
+  content    String
 }
