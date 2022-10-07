@@ -9,20 +9,35 @@ dotenv.config()
 
 const CHANNELS = [
   'h2p_gucio',
-  'HasanAbi',
-  'EWROON',
-  'loltyler1',
+  'izakOOO',
+  'senekofobia',
+  'brysiunya',
   'kubon_',
-  'boxbox',
-  'akanemsko',
-  'adamcy_',
-  'xntentacion',
-  'gosu',
-  'scrubnoob',
-  'paulinholokobr',
+  'patiro',
+  'maailinh',
+  'olszakumpel',
+  'grendy',
+  'lukisteve',
+  'meduska',
+  'franio',
   'xqc',
-  'kaicenat',
-  'westcol'
+  'westcol',
+  'trainwreckstv',
+  'alanzoka',
+  'gaules',
+  'summit1g',
+  'shroud',
+  'moonmoon',
+  'jltomy',
+  'missasinfonia',
+  'zerkaa',
+  'stray228',
+  'warframe',
+  'primevideo',
+  'liendra',
+  'zackrawrr',
+  'carola',
+  'elxokas'
 ]
 
 export const client = new tmi.Client({
@@ -68,18 +83,35 @@ client.on('message', async (_, client, message) => {
 })
 
 client.on('ban', async (channel, username) => {
-  console.log(channel, username)
+  try {
+    const { id } = await fetchUserByName(username)
 
-  const { id } = await fetchUserByName(username)
+    const user = await prisma.users.findFirst({ where: { id } })
 
-  // find user messages
-  const messages = await prisma.messages.findMany({
-    where: {
-      user_id: id
+    const isUserBanned = await prisma.banned_users.findFirst({ where: { user_id: id } })
+
+    if (!isUserBanned && user) {
+      // if user is not already banned and has messages
+      await prisma.banned_users.create({
+        data: {
+          user_id: id
+        }
+      })
+
+      console.log(`Channel: ${channel}, User: ${username}`)
+
+      // find user messages
+      const messages = await prisma.messages.findMany({
+        where: {
+          user_id: id
+        }
+      })
+
+      console.log(messages.map(m => m.content))
     }
-  })
-
-  console.log(messages.map(m => m.content))
+  } catch (err) {
+    console.log(err)
+  }
 })
 
 client.on('connected', async () => {
