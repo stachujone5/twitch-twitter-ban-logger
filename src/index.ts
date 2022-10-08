@@ -2,43 +2,16 @@ import dotenv from 'dotenv'
 import tmi from 'tmi.js'
 
 import { fetchChannelsInfo } from './helpers/fetchChannelsInfo'
+import { fetchStreamsInfo } from './helpers/fetchStreamsInfo'
 import { fetchUserByName } from './helpers/fetchUserByName'
 import { prisma } from './helpers/prisma'
 
 dotenv.config()
 
-const CHANNELS = [
-  'h2p_gucio',
-  'izakOOO',
-  'senekofobia',
-  'brysiunya',
-  'kubon_',
-  'patiro',
-  'maailinh',
-  'olszakumpel',
-  'grendy',
-  'lukisteve',
-  'meduska',
-  'franio',
-  'xqc',
-  'westcol',
-  'trainwreckstv',
-  'alanzoka',
-  'gaules',
-  'summit1g',
-  'shroud',
-  'moonmoon',
-  'jltomy',
-  'missasinfonia',
-  'zerkaa',
-  'stray228',
-  'warframe',
-  'primevideo',
-  'liendra',
-  'zackrawrr',
-  'carola',
-  'elxokas'
-]
+const CHANNELS = ['crownycro']
+
+// eslint-disable-next-line -- let needed
+let liveChannelsIds: string[] = []
 
 export const client = new tmi.Client({
   identity: {
@@ -84,26 +57,24 @@ client.on('message', async (_, client, message) => {
 
 client.on('ban', async (channel, username) => {
   try {
-    const { id } = await fetchUserByName(username)
+    const { id: streamerId } = await fetchUserByName(channel)
 
-    const user = await prisma.users.findFirst({ where: { id } })
+    const isLive = liveChannelsIds.includes(streamerId)
 
-    const isUserBanned = await prisma.banned_users.findFirst({ where: { user_id: id } })
+    if (!isLive) return
 
-    if (!isUserBanned && user) {
-      // if user is not already banned and has messages
-      await prisma.banned_users.create({
-        data: {
-          user_id: id
-        }
-      })
+    const { id: viewerId } = await fetchUserByName(username)
 
+    const user = await prisma.users.findFirst({ where: { id: viewerId } })
+
+    if (user) {
+      // user exists if he has any messages
       console.log(`Channel: ${channel}, User: ${username}`)
 
       // find user messages
       const messages = await prisma.messages.findMany({
         where: {
-          user_id: id
+          user_id: viewerId
         }
       })
 
@@ -117,11 +88,27 @@ client.on('ban', async (channel, username) => {
 client.on('connected', async () => {
   try {
     const channelsInfo = await fetchChannelsInfo(CHANNELS)
-    await prisma.channels.createMany({ data: channelsInfo.map(c => ({ name: c.login, id: c.id })) })
-    console.log(`* Connected to ${CHANNELS.join(', ')}`)
+    await prisma.channels.createMany({ data: channelsInfo.map(c => ({ id: c.id })) })
   } catch (err) {
     console.log(err)
   }
 })
 
 void client.connect()
+
+setInterval(async () => {
+  const streamsInfo = await fetchStreamsInfo(CHANNELS)
+
+  liveChannelsIds = streamsInfo.map(c => c.user_id)
+
+  // delete all messages in offline channels
+  const deltedMessages = await prisma.messages.deleteMany({
+    where: {
+      channel_id: {
+        not: { in: liveChannelsIds }
+      }
+    }
+  })
+
+  console.log(`Deleted ${deltedMessages.count} messages`)
+}, 30000)

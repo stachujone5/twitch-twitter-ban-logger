@@ -11,20 +11,13 @@ datasource db {
 }
 
 model users {
-  id       String         @id
+  id       String     @id
   messages messages[]
-  banned   banned_users[]
 }
 
 model channels {
-  id      String     @id @unique
-  name    String     @unique
+  id      String     @id
   message messages[]
-}
-
-model banned_users {
-  user_id String @id
-  user    users  @relation(fields: [user_id], references: [id])
 }
 
 model messages {

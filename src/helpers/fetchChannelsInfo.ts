@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-import type { Channel } from '../types'
+import type { Channel } from './fetchUserByName'
 
 export const fetchChannelsInfo = async (channels: readonly string[]) => {
   try {
