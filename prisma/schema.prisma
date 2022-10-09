@@ -10,10 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model users {
-  id       String     @id
-  messages messages[]
-}
 
 model channels {
   id      String     @id
@@ -22,7 +18,6 @@ model channels {
 
 model messages {
   id         Int      @id @default(autoincrement())
-  user       users    @relation(fields: [user_id], references: [id])
   user_id    String
   channel    channels @relation(fields: [channel_id], references: [id])
   channel_id String
